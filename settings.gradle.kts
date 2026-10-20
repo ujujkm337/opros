@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "OprosDevEnvironment"
+rootProject.name = "OprosLauncher"
 include(":app")

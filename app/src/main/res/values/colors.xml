@@ -7,8 +7,6 @@
     <color name="surface">#16213E</color>
     <color name="text_primary">#E0E0E0</color>
     <color name="text_secondary">#A0A0A0</color>
-    <color name="terminal_bg">#1A1A2E</color>
-    <color name="terminal_text">#E0E0E0</color>
     <color name="success">#00FF88</color>
     <color name="warning">#FFB800</color>
     <color name="error">#FF4444</color>

@@ -4,12 +4,12 @@ plugins {
 }
 
 android {
-    namespace = "com.termux"
+    namespace = "dev.opros.launcher"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.termux"
-        minSdk = 28
+        applicationId = "dev.opros.launcher"
+        minSdk = 26
         targetSdk = 34
         versionCode = 1
         versionName = "1.0.0"
@@ -42,12 +42,6 @@ android {
 
     buildFeatures {
         viewBinding = true
-    }
-
-    packaging {
-        jniLibs {
-            useLegacyPackaging = true
-        }
     }
 }
 

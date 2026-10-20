@@ -1,103 +1,100 @@
-# Opros Dev Environment
+# Opros Launcher
 
-**Автономная среда мобильной разработки на Android** — объединяет Termux, Debian (proot) и OpenCode AI в единое Android-приложение.
+**Android-лаунчер для OpenCode AI + DeepSeek V4.1 Flash Free**
 
-![Android](https://img.shields.io/badge/Android-API%2028+-green)
-![Kotlin](https://img.shields.io/badge/Kotlin-1.9.20-blue)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+Работает вместе с **оригинальным Termux** (F-Droid) — без форка, без `applicationId=com.termux`, без костылей.
 
-## 🏗 Архитектура
+## 🧠 Как это работает
 
 ```
-┌─────────────────────────────────────────────────┐
-│          Android App (Kotlin)                     │
-│          applicationId = com.termux               │
-│                                                   │
-│  ┌─────────────────┐  ┌────────────────────────┐ │
-│  │   Terminal View  │  │   Action Buttons        │ │
-│  │   (emulator)     │  │   OpenCode|Debian|Termux│ │
-│  └────────┬─────────┘  └────────────────────────┘ │
-│           │                                        │
-│  ┌────────▼─────────────────────────────────────┐ │
-│  │         TermuxService (foreground)            │ │
-│  │         - PTY management                       │ │
-│  │         - Process lifecycle                    │ │
-│  └────────┬─────────────────────────────────────┘ │
-│           │                                        │
-│  ┌────────▼─────────────────────────────────────┐ │
-│  │         Termux Bootstrap (rootfs)             │ │
-│  │  ┌──────────────────────────────────────────┐ │ │
-│  │  │   /data/data/com.termux/files/usr/       │ │ │
-│  │  │   ├── bin/ (bash, pkg, node, python...)  │ │ │
-│  │  │   ├── lib/                               │ │ │
-│  │  │   └── ...                                │ │ │
-│  │  └──────────────────────────────────────────┘ │ │
-│  │                                               │ │
-│  │  ┌──────────────────────────────────────────┐ │ │
-│  │  │   Debian (proot-distro)                  │ │ │
-│  │  │   ├── Full apt package manager           │ │ │
-│  │  │   ├── OpenCode AI assistant              │ │ │
-│  │  │   └── termux-mcp bridge                  │ │ │
-│  │  └──────────────────────────────────────────┘ │ │
-│  └──────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────┘
+┌──────────────────────────┐
+│   Opros Launcher (APK)   │  ← Наше приложение
+│   applicationId:          │
+│   dev.opros.launcher     │
+│                           │
+│   • UI (кнопки, статус)   │
+│   • Setup wizard          │
+│   • Конфиг DeepSeek       │
+└───────────┬──────────────┘
+            │ RUN_COMMAND intent
+            │ (официальный API Termux)
+            ▼
+┌──────────────────────────┐
+│   Termux (F-Droid)       │  ← Оригинал, НЕ форк
+│   com.termux              │
+│                           │
+│   • bash, pkg, git        │
+│   • OpenCode (native      │
+│     aarch64, без proot)   │
+│   • DeepSeek V4.1         │
+│     Flash Free ($0)       │
+└──────────────────────────┘
 ```
 
-## 📋 Что внутри
+### Ключевые решения:
 
-### Слой 1: Android-приложение (Kotlin)
-- `applicationId = com.termux` — необходимо для работы Termux bootstrap
-- Foreground service для поддержания терминала
-- UI с терминалом, кнопками и клавиатурными дополнениями
+| Проблема | Решение |
+|----------|---------|
+| OpenCode не ставится в Termux (баг #21043) | Используем **guysoft/opencode-termux** — нативный aarch64 бинарник |
+| Нужен ли форк Termux? | **НЕТ** — общаемся через `RUN_COMMAND` intent |
+| DeepSeek бесплатно? | **Да** — модель `opencode/deepseek-v4.1-flash-free`, $0/токен |
+| Нужен proot/Debian? | **НЕТ** — OpenCode работает нативно в Termux |
 
-### Слой 2: Termux Bootstrap
-- Встроенный rootfs (bootstrap-arm64.zip в assets)
-- При первом запуске автоматически распаковывается
-- Включает: bash, pkg, nodejs, python, git и базовые утилиты
+## 📋 Требования
 
-### Слой 3: Debian (proot)
-- Устанавливается через `proot-distro install debian`
-- Полноценный Debian с apt
-- OpenCode AI устанавливается внутри Debian
-- MCP-мост (termux-mcp) для доступа ИИ к системе
-
-### Слой 4: OpenCode + MCP
-- AI-ассистент для помощи в разработке
-- MCP (Model Context Protocol) предоставляет инструменты:
-  - Выполнение команд в Termux и Debian
-  - Работа с файлами
-  - Доступ к Android API (скриншоты, уведомления, буфер обмена)
+- **Android 8.0+** (arm64/aarch64)
+- **Termux из F-Droid** (НЕ из Google Play — там устаревшая версия!)
+  - F-Droid: https://f-droid.org/packages/com.termux/
+  - GitHub: https://github.com/termux/termux-app/releases
+- Без root
 
 ## 🚀 Быстрый старт
 
-### Требования
-- Android 9.0 (API 28) или выше
-- Архитектура: arm64-v8a
-- 2+ GB свободного места
-- Без root
+### 1. Установите Termux (из F-Droid!)
 
-### Сборка APK
+### 2. Соберите Opros APK
 
 ```bash
-# 1. Клонируйте репозиторий
 git clone https://github.com/ujujkm337/opros.git
 cd opros
-
-# 2. Скачайте Termux bootstrap
-bash scripts/download-bootstrap.sh
-
-# 3. Соберите APK (нужен Android SDK + JDK 17)
 ./gradlew assembleDebug
-
-# 4. APK будет в app/build/outputs/apk/debug/
+# APK: app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Или откройте проект в Android Studio и нажмите Build → Build APK.
-
-### Установка
+### 3. Установите Opros
 
 ```bash
 adb install app/build/outputs/apk/debug/app-debug.apk
+```
+
+### 4. Запустите Setup
+
+Откройте Opros → нажмите **"⚙ Setup"**
+
+Setup автоматически:
+1. Включит `allow-external-apps` в Termux
+2. Установит OpenCode (нативный aarch64 бинарник)
+3. Настроит DeepSeek V4.1 Flash Free
+
+### 5. Запустите OpenCode
+
+Нажмите **"🚀 Запустить OpenCode"** — Termux откроется с AI-ассистентом.
+
+## 🤖 DeepSeek V4.1 Flash Free
+
+| Параметр | Значение |
+|----------|----------|
+| Model ID | `opencode/deepseek-v4.1-flash-free` |
+| Стоимость | **$0** (бесплатно, ограниченное время) |
+| Контекст | 200K токенов |
+| Выход | 32K токенов |
+| Провайдер | OpenCode Zen |
+| Данные | Zero-retention, не используется для обучения |
+
+При первом запуске OpenCode:
+```
+/connect    → выбрать провайдер OpenCode (Zen)
+/models     → выбрать DeepSeek V4.1 Flash Free
 ```
 
 ## 📂 Структура проекта
@@ -105,72 +102,51 @@ adb install app/build/outputs/apk/debug/app-debug.apk
 ```
 opros/
 ├── app/
-│   ├── build.gradle.kts          # Конфигурация сборки
+│   ├── build.gradle.kts
 │   └── src/main/
 │       ├── AndroidManifest.xml
-│       ├── java/com/termux/
-│       │   ├── MainActivity.kt         # Главный экран
-│       │   ├── SetupActivity.kt        # Мастер первого запуска
-│       │   ├── TermuxService.kt        # Foreground service
-│       │   ├── TermuxInstaller.kt      # Установка bootstrap
-│       │   ├── TerminalEmulator.kt     # Эмуляция терминала
-│       │   ├── TerminalView.kt         # View для терминала
-│       │   └── AiSystemPromptGenerator.kt  # Генератор системного промпта
+│       ├── java/dev/opros/launcher/
+│       │   ├── MainActivity.kt          # Главный экран
+│       │   ├── SetupActivity.kt         # Мастер установки
+│       │   ├── TerminalActivity.kt      # Просмотр терминала
+│       │   └── TermuxCommandExecutor.kt # RUN_COMMAND intent API
 │       └── res/
 │           ├── layout/
-│           │   ├── activity_main.xml
-│           │   └── activity_setup.xml
 │           ├── values/
 │           ├── drawable/
 │           └── mipmap/
-├── mcp-bridge/
-│   ├── termux_mcp.py             # MCP-сервер для Termux
-│   ├── setup.py
-│   └── README.md
-├── scripts/
-│   ├── download-bootstrap.sh     # Загрузка Termux bootstrap
-│   └── setup-environment.sh      # Пост-инсталляционный скрипт
 ├── docs/
-│   ├── ARCHITECTURE.md           # Детальное описание архитектуры
-│   ├── BUILD.md                  # Инструкция по сборке
-│   └── SYSTEM_PROMPT.md          # Системный промпт для ИИ
-├── build.gradle.kts
-├── settings.gradle.kts
+│   ├── ARCHITECTURE.md
+│   └── DEEPSEEK_SETUP.md
+├── scripts/
+│   └── generate-icons.py
 └── README.md
 ```
 
-## 🤖 Системный промпт для ИИ
+## ⚙ Как работает RUN_COMMAND
 
-Встроенный в приложение системный промпт объясняет OpenCode:
+Opros общается с Termux через официальный API:
 
-- Где он работает (Debian proot внутри Termux на Android)
-- Какие инструменты доступны (apt, pkg, MCP endpoints)
-- Как работать с файловой системой
-- Какие ограничения существуют (нет root, нет Docker, нет systemd)
+```kotlin
+val intent = Intent("com.termux.RUN_COMMAND").apply {
+    setClassName("com.termux", "com.termux.app.RunCommandService")
+    putExtra("com.termux.RUN_COMMAND_PATH", "/data/data/com.termux/files/usr/bin/bash")
+    putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", "opencode"))
+    putExtra("com.termux.RUN_COMMAND_BACKGROUND", false)
+}
+startForegroundService(intent)
+```
 
-Полный текст: [docs/SYSTEM_PROMPT.md](docs/SYSTEM_PROMPT.md)
+Для работы нужен `allow-external-apps = true` в `~/.termux/termux.properties`
+(Setup включает это автоматически).
 
 ## ⚠️ Ограничения
 
-| Ограничение | Причина |
-|-------------|---------|
-| Нет root | proot, не виртуализация |
-| Нет Docker | Container-in-container невозможен |
-| Нет systemd | proot не поддерживает init-системы |
-| Нет kernel modules | Доступ к ядру Android ограничен |
-| Ограниченная производительность | ARM + proot overhead |
-
-## 📦 Релизы
-
-Готовый APK доступен в [GitHub Releases](https://github.com/ujujkm337/opros/releases).
+- Termux должен быть из F-Droid/GitHub (Play Store версия устарела)
+- OpenCode TUI отображается в Termux, а не внутри Opros
+- DeepSeek V4.1 Flash Free работает только внутри OpenCode (не через API)
+- Бесплатный период DeepSeek не имеет опубликованной даты окончания
 
 ## 📄 Лицензия
 
-MIT License. См. [LICENSE](LICENSE).
-
-## 🙏 Благодарности
-
-- [Termux](https://github.com/termux/termux-app) — за Termux и bootstrap
-- [proot-distro](https://github.com/termux/proot-distro) — за Linux-дистрибутивы в Termux
-- [OpenCode](https://opencode.ai) — за AI-ассистент
-- [Cody](https://github.com/nicehash/Cody) — за идею applicationId=com.termux
+MIT License

@@ -1,187 +1,120 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout 
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#1A1A2E"
-    tools:context=".MainActivity">
+    android:orientation="vertical"
+    android:padding="16dp">
 
-    <!-- Top toolbar with status -->
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
+    <!-- Header -->
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#16213E"
-        app:layout_constraintTop_toTopOf="parent"
-        app:title="Opros Dev Environment"
-        app:titleTextColor="#E0E0E0" />
+        android:text="Opros Launcher"
+        android:textColor="#00D4FF"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:paddingBottom="8dp" />
 
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="OpenCode + DeepSeek на Android"
+        android:textColor="#808080"
+        android:textSize="14sp"
+        android:gravity="center"
+        android:paddingBottom="24dp" />
+
+    <!-- Status -->
     <TextView
         android:id="@+id/tvStatus"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#0F3460"
-        android:padding="8dp"
-        android:text="Initializing..."
-        android:textColor="#00D4FF"
-        android:textSize="12sp"
+        android:background="#16213E"
+        android:padding="16dp"
+        android:text="Проверка..."
+        android:textColor="#E0E0E0"
+        android:textSize="16sp"
         android:fontFamily="monospace"
-        app:layout_constraintTop_toBottomOf="@id/toolbar" />
+        android:layout_marginBottom="24dp" />
 
-    <!-- Terminal output view -->
-    <com.termux.TerminalView
-        android:id="@+id/terminalView"
+    <!-- Main action: Launch OpenCode -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnLaunchOpenCode"
+        style="@style/Widget.Material3.Button"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:layout_marginBottom="12dp"
+        android:text="🚀 Запустить OpenCode"
+        android:textSize="18sp"
+        app:backgroundTint="#0F3460" />
+
+    <!-- Setup button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnSetup"
+        style="@style/Widget.Material3.Button.TonalButton"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginBottom="8dp"
+        android:text="⚙ Setup (установить OpenCode + DeepSeek)"
+        android:textSize="14sp" />
+
+    <!-- Check status button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnCheckStatus"
+        style="@style/Widget.Material3.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginBottom="8dp"
+        android:text="📊 Проверить статус"
+        android:textSize="14sp" />
+
+    <!-- Open Termux button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnOpenTermux"
+        style="@style/Widget.Material3.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginBottom="8dp"
+        android:text="📱 Открыть Termux"
+        android:textSize="14sp" />
+
+    <!-- Info button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnInfo"
+        style="@style/Widget.Material3.Button.TextButton"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="ℹ О приложении"
+        android:textSize="14sp" />
+
+    <!-- Footer info -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        app:layout_constraintTop_toBottomOf="@id/tvStatus"
-        app:layout_constraintBottom_toTopOf="@id/tvTerminalOutput"
-        app:layout_constraintVertical_weight="3" />
+        android:layout_weight="1"
+        android:gravity="bottom"
+        android:orientation="vertical">
 
-    <!-- AI system prompt display (hidden by default) -->
-    <TextView
-        android:id="@+id/tvTerminalOutput"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#16213E"
-        android:maxHeight="200dp"
-        android:padding="12dp"
-        android:textColor="#A0D0A0"
-        android:textSize="11sp"
-        android:fontFamily="monospace"
-        android:visibility="gone"
-        app:layout_constraintBottom_toTopOf="@id/actionBar" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="DeepSeek V4.1 Flash Free"
+            android:textColor="#00D4FF"
+            android:textSize="12sp"
+            android:gravity="center" />
 
-    <!-- Action buttons bar -->
-    <LinearLayout
-        android:id="@+id/actionBar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#16213E"
-        android:orientation="horizontal"
-        android:padding="4dp"
-        app:layout_constraintBottom_toTopOf="@id/keyboardBar">
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnLaunchOpenCode"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_weight="1"
-            android:layout_margin="2dp"
-            android:text="OpenCode"
-            android:textSize="10sp"
-            app:icon="@drawable/ic_ai" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnLaunchDebian"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_weight="1"
-            android:layout_margin="2dp"
-            android:text="Debian"
-            android:textSize="10sp"
-            app:icon="@drawable/ic_linux" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnLaunchTermux"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_weight="1"
-            android:layout_margin="2dp"
-            android:text="Termux"
-            android:textSize="10sp"
-            app:icon="@drawable/ic_terminal" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnShowAiPrompt"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_weight="1"
-            android:layout_margin="2dp"
-            android:text="AI Info"
-            android:textSize="10sp"
-            app:icon="@drawable/ic_info" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="$0 • 200K контекст • Без API-ключа"
+            android:textColor="#808080"
+            android:textSize="11sp"
+            android:gravity="center"
+            android:paddingTop="4dp" />
 
     </LinearLayout>
 
-    <!-- Extra keyboard bar -->
-    <LinearLayout
-        android:id="@+id/keyboardBar"
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:background="#0F3460"
-        android:orientation="horizontal"
-        android:padding="2dp"
-        app:layout_constraintBottom_toBottomOf="parent">
-
-        <Button
-            android:id="@+id/btnTab"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:layout_margin="2dp"
-            android:background="@drawable/btn_extra_key"
-            android:text="TAB"
-            android:textColor="#E0E0E0"
-            android:textSize="11sp" />
-
-        <Button
-            android:id="@+id/btnCtrl"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:layout_margin="2dp"
-            android:background="@drawable/btn_extra_key"
-            android:text="CTRL"
-            android:textColor="#E0E0E0"
-            android:textSize="11sp" />
-
-        <Button
-            android:id="@+id/btnEsc"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:layout_margin="2dp"
-            android:background="@drawable/btn_extra_key"
-            android:text="ESC"
-            android:textColor="#E0E0E0"
-            android:textSize="11sp" />
-
-        <Button
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:layout_margin="2dp"
-            android:background="@drawable/btn_extra_key"
-            android:text="/"
-            android:textColor="#E0E0E0"
-            android:textSize="11sp" />
-
-        <Button
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:layout_margin="2dp"
-            android:background="@drawable/btn_extra_key"
-            android:text="-"
-            android:textColor="#E0E0E0"
-            android:textSize="11sp" />
-
-        <Button
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:layout_margin="2dp"
-            android:background="@drawable/btn_extra_key"
-            android:text="|"
-            android:textColor="#E0E0E0"
-            android:textSize="11sp" />
-
-    </LinearLayout>
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+</LinearLayout>

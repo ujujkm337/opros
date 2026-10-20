@@ -12,9 +12,9 @@
         android:background="#0F3460"
         android:gravity="center"
         android:padding="16dp"
-        android:text="🛠 Setting Up Development Environment"
+        android:text="⚙ Setup: OpenCode + DeepSeek"
         android:textColor="#00D4FF"
-        android:textSize="18sp"
+        android:textSize="20sp"
         android:textStyle="bold" />
 
     <!-- Progress section -->
@@ -28,7 +28,7 @@
             android:id="@+id/tvStepTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Preparing..."
+            android:text="Готов к установке"
             android:textColor="#E0E0E0"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -38,7 +38,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="Initializing setup wizard"
+            android:text="Установка OpenCode + настройка DeepSeek V4.1 Flash Free"
             android:textColor="#A0A0A0"
             android:textSize="14sp" />
 
@@ -58,7 +58,7 @@
         android:layout_height="wrap_content"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
-        android:text="Installation Log:"
+        android:text="Лог установки:"
         android:textColor="#808080"
         android:textSize="12sp" />
 
@@ -80,15 +80,14 @@
             android:textSize="11sp" />
     </ScrollView>
 
-    <!-- Action button -->
+    <!-- Start button -->
     <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnSkip"
+        android:id="@+id/btnStart"
         style="@style/Widget.Material3.Button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
-        android:text="Skip Setup"
-        android:textColor="#E0E0E0"
-        android:visibility="visible" />
+        android:text="▶ Начать установку"
+        android:textColor="#E0E0E0" />
 
 </LinearLayout>

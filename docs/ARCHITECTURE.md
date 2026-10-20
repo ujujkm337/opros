@@ -1,187 +1,113 @@
-# Архитектура Opros Dev Environment
+# Архитектура Opros Launcher
 
-## Обзор
+## Почему НЕ applicationId=com.termux
 
-Opros — это Android-приложение, которое объединяет три слоя:
+Ранний подход (в v0.1) предполагал форк Termux с `applicationId=com.termux`,
+чтобы встроить bootstrap. Это **плохое решение**:
 
-1. **Termux** — Linux-окружение на Android (без root)
-2. **Debian** — полноценный Linux-дистрибутив через proot
-3. **OpenCode** — AI-ассистент с доступом к системе через MCP
+1. Конфликт с оригинальным Termux (нельзя установить оба)
+2. Нельзя опубликовать в Play Store
+3. Сложно обновлять bootstrap
+4. Юридически спорно
 
-## Почему applicationId = com.termux?
+## Правильный подход: RUN_COMMAND Intent
 
-Termux bootstrap использует захардкоженный путь `/data/data/com.termux/files/usr`.
-Этот путь зашит в скомпилированные бинарники bootstrap-а (ld-linux, libc и т.д.).
-
-Есть два варианта:
-1. **Наш подход**: Сделать `applicationId = com.termux`, чтобы bootstrap работал из коробки.
-2. **Альтернатива**: Пересобрать bootstrap с другим prefix — трудоёмко и требует cross-compile toolchain.
-
-Мы выбрали вариант 1 (как проект Cody), потому что:
-- Не требует перекомпиляции bootstrap
-- Совместим с готовыми bootstrap-архивами от Termux
-- Проще поддерживать
-
-**Минус**: нельзя опубликовать в Play Store (конфликт ID).
-
-## Схема данных
+Termux предоставляет официальный API для внешних приложений:
 
 ```
-/data/data/com.termux/
-├── files/
-│   ├── usr/                    ← Termux prefix (bootstrap)
-│   │   ├── bin/                ← Исполняемые файлы
-│   │   │   ├── bash
-│   │   │   ├── pkg
-│   │   │   ├── node
-│   │   │   ├── python3
-│   │   │   ├── proot-distro
-│   │   │   └── ...
-│   │   ├── lib/                ← Библиотеки
-│   │   ├── etc/                ← Конфигурация
-│   │   ├── var/
-│   │   │   └── lib/proot-distro/
-│   │   │       └── installed-rootfs/
-│   │   │           └── debian/ ← Debian rootfs
-│   │   │               ├── bin/
-│   │   │               ├── usr/
-│   │   │               ├── root/
-│   │   │               │   ├── Projects/
-│   │   │               │   └── .config/opencode/
-│   │   │               │       ├── config.json
-│   │   │               │       └── system-prompt.txt
-│   │   │               └── ...
-│   │   └── tmp/
-│   └── home/                   ← Termux home
-│       ├── .bashrc
-│       └── .profile
-├── cache/
-└── shared_prefs/
+com.termux.RUN_COMMAND
 ```
 
-## Потоки выполнения
+Это Intent-сервис (`com.termux.app.RunCommandService`), который позволяет
+любому приложению выполнять команды внутри Termux.
 
-### Первый запуск
+**Требование**: Пользователь должен один раз включить `allow-external-apps`
+в настройках Termux (Opros Setup делает это автоматически).
 
-```
-App Launch
-    │
-    ▼
-Check first_run flag
-    │
-    ├── false → MainActivity (normal)
-    │
-    └── true → SetupActivity
-                │
-                ▼
-        Install Bootstrap
-        (extract zip from assets)
-                │
-                ▼
-        pkg update
-                │
-                ▼
-        pkg install proot-distro nodejs git curl python
-                │
-                ▼
-        proot-distro install debian
-                │
-                ▼
-        Install OpenCode (npm / curl)
-                │
-                ▼
-        Install termux-mcp (pip / npm)
-                │
-                ▼
-        Write configs
-                │
-                ▼
-        MainActivity
-```
-
-### Сессия OpenCode
+## Схема работы
 
 ```
-User taps "OpenCode"
-    │
-    ▼
-TermuxService.executeCommand(
-    "proot-distro login debian -- opencode"
-)
-    │
-    ▼
-Debian shell starts
-    │
-    ▼
-OpenCode loads config from ~/.config/opencode/config.json
-    │
-    ▼
-MCP bridge (termux-mcp) starts as child process
-    │
-    ▼
-OpenCode ↔ MCP ↔ Termux/Android
-    (bidirectional JSON-RPC over stdio)
+Opros Launcher                    Termux (F-Droid)
+dev.opros.launcher                com.termux
+┌─────────────────┐              ┌──────────────────┐
+│                 │   Intent     │                  │
+│  UI Buttons     │─────────────→│ RunCommandService│
+│  • Launch       │ RUN_COMMAND  │                  │
+│  • Setup        │              │  → bash -c       │
+│  • Status       │              │    "opencode"    │
+│                 │              │                  │
+│  TermuxCommand  │              │  Termux Session  │
+│  Executor       │              │  ┌────────────┐  │
+│                 │              │  │ OpenCode   │  │
+│  File checks:   │  (read /data │  │ DeepSeek   │  │
+│  ~/.config/     │   direct)    │  │ Flash Free │  │
+│  opencode/      │←─────────────│  └────────────┘  │
+│                 │              │                  │
+└─────────────────┘              └──────────────────┘
 ```
 
-## MCP Bridge
+## OpenCode: Нативная установка
 
-MCP-мост реализует Model Context Protocol, давая AI доступ к:
+### Почему не npm install?
 
-| Категория | Инструменты |
-|-----------|-------------|
-| Shell | execute_command, execute_in_debian |
-| Файлы | read_file, write_file, list_directory, delete_file, move_file |
-| Android | screenshot, notification, clipboard, vibrate, battery, device_info |
-| Сеть | http_request, network_info |
+OpenCode баг #21043: установщик определяет Termux как обычный Linux
+и ставит glibc-бинарник, который не работает на Android Bionic libc.
 
-Протокол: JSON-RPC 2.0 over stdio (stdin/stdout).
+### Решение: guysoft/opencode-termux
 
-## Компоненты UI
+Проект cross-компилирует Bun + WebKit/JSC для Android aarch64:
+- Нативный бинарник (не glibc, не proot)
+- Работает прямо в Termux
+- Устанавливается через .deb/.pkg.tar.xz
+- Размер: ~66 MB (UPX compressed)
+
+### Альтернативные подходы (НЕ используем)
+
+| Подход | Почему не подходит |
+|--------|-------------------|
+| proot-distro + Debian | Медленно (ptrace overhead), избыточно |
+| npm install -g opencode-ai | Баг #21043, ставит не тот бинарник |
+| curl install скрипт | Тоже ставит glibc бинарник |
+| sebastianl1/opencode-termux | glibc wrapper, менее надёжный |
+
+## DeepSeek V4.1 Flash Free
+
+OpenCode Zen предоставляет бесплатный доступ:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode/deepseek-v4.1-flash-free"
+}
+```
+
+**Важно**: Эта модель работает ТОЛЬКО внутри OpenCode TUI.
+Нельзя использовать через обычный API-вызов (вернёт 403).
+
+## Файлы конфигурации
+
+Opros записывает в Termux:
+
+```
+~/.termux/termux.properties       → allow-external-apps = true
+~/.config/opencode/opencode.json  → модель DeepSeek по умолчанию
+```
+
+## Компоненты
 
 ### MainActivity
-- **TerminalView** — отображение вывода терминала
-- **Action buttons** — OpenCode, Debian, Termux, AI Info
-- **Keyboard bar** — TAB, CTRL, ESC, /, -, |
-- **Status bar** — текущее состояние
+- Проверка установки Termux
+- Кнопка запуска OpenCode
+- Статус системы
+- Навигация в Setup
 
 ### SetupActivity
-- Пошаговый wizard установки
-- Progress bar
-- Real-time log
+- Пошаговая установка:
+  1. Включение allow-external-apps
+  2. Установка OpenCode (guysoft .deb)
+  3. Конфигурация DeepSeek
 
-## Безопасность
-
-- Приложение НЕ требует root
-- Все файлы в приватной директории app (кроме /sdcard)
-- MCP-мост работает только локально (stdio, без сети)
-- Нет удалённого доступа к shell
-
-## Производительность
-
-| Операция | Ожидаемое время |
-|----------|-----------------|
-| Установка bootstrap | 10-30 секунд |
-| pkg update | 30-60 секунд |
-| proot-distro install debian | 2-5 минут |
-| OpenCode startup | 5-15 секунд |
-| Команды в proot | +50-100% overhead |
-
-## Альтернативные подходы
-
-### 1. Использование WebView + SSH
-Вместо встроенного терминала — WebView с веб-терминалом (xterm.js), подключающийся к локальному SSH-серверу.
-
-**Плюсы**: Лучшая эмуляция терминала.
-**Минусы**: Больше зависимостей, сложнее настройка.
-
-### 2. Использование Termux:Widget
-Запуск скриптов через виджеты Termux.
-
-**Плюсы**: Проще архитектура.
-**Минусы**: Нет интерактивного терминала.
-
-### 3. Полная пересборка Termux
-Форк Termux с другим applicationId и prefix.
-
-**Плюсы**: Нет конфликта ID.
-**Минусы**: Требует cross-compile toolchain, сложно в поддержке.
+### TermuxCommandExecutor
+- Обёртка над RUN_COMMAND intent
+- Проверка файлов в /data/data/com.termux/
+- Генерация bash-скриптов установки
