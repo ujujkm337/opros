@@ -1,78 +1,107 @@
-# Архитектура Opros Launcher
+# Архитектура Opros
 
-## Почему НЕ applicationId=com.termux
+## Концепция
 
-Ранний подход (в v0.1) предполагал форк Termux с `applicationId=com.termux`,
-чтобы встроить bootstrap. Это **плохое решение**:
+Opros — это **единый APK**, который содержит:
+1. Встроенный Termux bootstrap (rootfs)
+2. OpenCode AI-агент (native aarch64)
+3. Настроенный DeepSeek V4.1 Flash Free
+4. Терминал с UI
 
-1. Конфликт с оригинальным Termux (нельзя установить оба)
-2. Нельзя опубликовать в Play Store
-3. Сложно обновлять bootstrap
-4. Юридически спорно
+Всё работает из коробки — не нужно устанавливать Termux отдельно.
 
-## Правильный подход: RUN_COMMAND Intent
+## Почему applicationId = com.termux
 
-Termux предоставляет официальный API для внешних приложений:
+Termux bootstrap hardcoded на путь `/data/data/com.termux/files/usr`.
 
-```
-com.termux.RUN_COMMAND
-```
+Этот путь зашит в:
+- Динамический линкер (ld-linux-aarch64.so.1)
+- libc и другие библиотеки
+- Конфигурационные файлы пакетов
 
-Это Intent-сервис (`com.termux.app.RunCommandService`), который позволяет
-любому приложению выполнять команды внутри Termux.
+**Единственный способ** встроить Termux в APK — использовать `applicationId = com.termux`.
 
-**Требование**: Пользователь должен один раз включить `allow-external-apps`
-в настройках Termux (Opros Setup делает это автоматически).
+Альтернатива — пересобрать bootstrap с другим prefix, но это требует:
+- Cross-compile toolchain
+- Пересборку всех пакетов
+- Постоянное поддержание форка
+
+Мы выбрали путь с `com.termux` (как проект Cody).
 
 ## Схема работы
 
 ```
-Opros Launcher                    Termux (F-Droid)
-dev.opros.launcher                com.termux
-┌─────────────────┐              ┌──────────────────┐
-│                 │   Intent     │                  │
-│  UI Buttons     │─────────────→│ RunCommandService│
-│  • Launch       │ RUN_COMMAND  │                  │
-│  • Setup        │              │  → bash -c       │
-│  • Status       │              │    "opencode"    │
-│                 │              │                  │
-│  TermuxCommand  │              │  Termux Session  │
-│  Executor       │              │  ┌────────────┐  │
-│                 │              │  │ OpenCode   │  │
-│  File checks:   │  (read /data │  │ DeepSeek   │  │
-│  ~/.config/     │   direct)    │  │ Flash Free │  │
-│  opencode/      │←─────────────│  └────────────┘  │
-│                 │              │                  │
-└─────────────────┘              └──────────────────┘
+App Launch
+    │
+    ▼
+MainActivity.onCreate()
+    │
+    ├── Bootstrap установлен?
+    │   ├── Нет → SetupActivity
+    │   │         ├── Распаковка bootstrap-arm64.zip из assets
+    │   │         ├── Установка прав (chmod +x)
+    │   │         ├── pkg update && pkg install ripgrep curl
+    │   │         ├── Установка OpenCode (guysoft .deb)
+    │   │         └── Запись opencode.json с DeepSeek
+    │   │
+    │   └── Да → TermuxService
+    │            ├── Создание TerminalSession (bash)
+    │            ├── Подключение к TerminalView
+    │            └── Готов к работе
+    │
+    ▼
+User taps "OpenCode"
+    │
+    ▼
+TerminalSession.write("opencode\n")
+    │
+    ▼
+OpenCode TUI запускается в терминале
+    ├── Загружает ~/.config/opencode/opencode.json
+    ├── Модель: opencode/deepseek-v4.1-flash-free
+    └── AI-агент готов к работе
 ```
+
+## Компоненты
+
+### BootstrapManager
+- Распаковывает `assets/bootstrap-arm64.zip` в `/data/data/com.termux/files/`
+- Устанавливает права на бинарники
+- Создаёт .bashrc и .profile
+
+### TermuxService
+- Foreground service для поддержания сессии
+- Управление терминальными сессиями
+- Проверка установки OpenCode и DeepSeek
+
+### TerminalSession
+- Обёртка над Process (bash)
+- Чтение stdout/stderr
+- Запись stdin
+- Поддержка escape-последовательностей
+
+### TerminalView
+- ScrollView с TextView
+- Отображение вывода терминала
+- Обработка клавиатуры (Enter, Tab, arrows)
+
+### SetupActivity
+- Пошаговый мастер:
+  1. Bootstrap (распаковка)
+  2. OpenCode (guysoft native .deb)
+  3. DeepSeek (запись конфига)
 
 ## OpenCode: Нативная установка
 
-### Почему не npm install?
-
-OpenCode баг #21043: установщик определяет Termux как обычный Linux
-и ставит glibc-бинарник, который не работает на Android Bionic libc.
-
-### Решение: guysoft/opencode-termux
-
-Проект cross-компилирует Bun + WebKit/JSC для Android aarch64:
+Используем **guysoft/opencode-termux**:
+- Cross-compiled Bun + WebKit/JSC для Android aarch64
 - Нативный бинарник (не glibc, не proot)
-- Работает прямо в Termux
-- Устанавливается через .deb/.pkg.tar.xz
-- Размер: ~66 MB (UPX compressed)
-
-### Альтернативные подходы (НЕ используем)
-
-| Подход | Почему не подходит |
-|--------|-------------------|
-| proot-distro + Debian | Медленно (ptrace overhead), избыточно |
-| npm install -g opencode-ai | Баг #21043, ставит не тот бинарник |
-| curl install скрипт | Тоже ставит glibc бинарник |
-| sebastianl1/opencode-termux | glibc wrapper, менее надёжный |
+- Размер: ~66 MB
+- Устанавливается через .deb пакет
 
 ## DeepSeek V4.1 Flash Free
 
-OpenCode Zen предоставляет бесплатный доступ:
+Конфигурация записывается автоматически:
 
 ```json
 {
@@ -81,33 +110,14 @@ OpenCode Zen предоставляет бесплатный доступ:
 }
 ```
 
-**Важно**: Эта модель работает ТОЛЬКО внутри OpenCode TUI.
-Нельзя использовать через обычный API-вызов (вернёт 403).
-
-## Файлы конфигурации
-
-Opros записывает в Termux:
-
+При первом запуске OpenCode:
 ```
-~/.termux/termux.properties       → allow-external-apps = true
-~/.config/opencode/opencode.json  → модель DeepSeek по умолчанию
+/connect  → выбрать OpenCode (Zen)
 ```
 
-## Компоненты
+## Ограничения
 
-### MainActivity
-- Проверка установки Termux
-- Кнопка запуска OpenCode
-- Статус системы
-- Навигация в Setup
-
-### SetupActivity
-- Пошаговая установка:
-  1. Включение allow-external-apps
-  2. Установка OpenCode (guysoft .deb)
-  3. Конфигурация DeepSeek
-
-### TermuxCommandExecutor
-- Обёртка над RUN_COMMAND intent
-- Проверка файлов в /data/data/com.termux/
-- Генерация bash-скриптов установки
+- **Конфликт с Termux**: нельзя установить Opros и оригинальный Termux одновременно
+- **Размер APK**: ~150-250 MB (bootstrap + OpenCode)
+- **Нет root**: proot-режим (хотя нам это и не нужно)
+- **DeepSeek Free**: "limited time" (дата окончания не опубликована)

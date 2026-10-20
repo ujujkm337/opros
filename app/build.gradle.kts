@@ -4,15 +4,16 @@ plugins {
 }
 
 android {
-    namespace = "dev.opros.launcher"
+    namespace = "com.termux"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "dev.opros.launcher"
+        // ВАЖНО: applicationId = com.termux для работы bootstrap
+        applicationId = "com.termux"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
-        versionName = "1.0.0"
+        versionName = "2.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
@@ -42,6 +43,12 @@ android {
 
     buildFeatures {
         viewBinding = true
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 }
 

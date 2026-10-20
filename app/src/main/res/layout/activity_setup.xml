@@ -2,22 +2,20 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#1A1A2E"
+    android:background="#0D1117"
     android:orientation="vertical">
 
-    <!-- Header -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#0F3460"
+        android:background="#161B22"
         android:gravity="center"
         android:padding="16dp"
-        android:text="⚙ Setup: OpenCode + DeepSeek"
+        android:text="⚙ Установка Opros"
         android:textColor="#00D4FF"
         android:textSize="20sp"
         android:textStyle="bold" />
 
-    <!-- Progress section -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -29,7 +27,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Готов к установке"
-            android:textColor="#E0E0E0"
+            android:textColor="#E6EDF3"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -38,8 +36,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="Установка OpenCode + настройка DeepSeek V4.1 Flash Free"
-            android:textColor="#A0A0A0"
+            android:text="Установка: Termux → OpenCode → DeepSeek V4.1 Flash Free"
+            android:textColor="#8B949E"
             android:textSize="14sp" />
 
         <ProgressBar
@@ -48,19 +46,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:progressTint="#00D4FF" />
-
+            android:progressTint="#238636" />
     </LinearLayout>
-
-    <!-- Log output -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:text="Лог установки:"
-        android:textColor="#808080"
-        android:textSize="12sp" />
 
     <ScrollView
         android:id="@+id/scrollView"
@@ -68,7 +55,7 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:layout_margin="16dp"
-        android:background="#111122"
+        android:background="#161B22"
         android:padding="8dp">
 
         <TextView
@@ -76,11 +63,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:fontFamily="monospace"
-            android:textColor="#00FF88"
+            android:textColor="#3FB950"
             android:textSize="11sp" />
     </ScrollView>
 
-    <!-- Start button -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnStart"
         style="@style/Widget.Material3.Button"
@@ -88,6 +74,6 @@
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
         android:text="▶ Начать установку"
-        android:textColor="#E0E0E0" />
+        app:backgroundTint="#238636" />
 
 </LinearLayout>
